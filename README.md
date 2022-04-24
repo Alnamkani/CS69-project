@@ -1,1 +1,1 @@
-# CS69-project
+# CS690-project
