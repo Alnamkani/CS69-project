@@ -49,7 +49,7 @@ def main(*ARGS):
     classes = ('plane', 'car', 'bird', 'cat',
             'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
  
-    num_e = 0
+    num_e = 2
 
     model = Model.Net()
 
@@ -62,6 +62,10 @@ def main(*ARGS):
             model.train_one_epoch(input, label, None, None)
 
     print("done training")
+
+    path = "MA_weights.ptnnp"
+
+    torch.save(model.model.state_dict(), path)
 
     # for i, data in enumerate(trainloader, 0):
     #     input, label = data
