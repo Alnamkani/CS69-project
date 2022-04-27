@@ -15,14 +15,14 @@ N_CLASSES = 10
 
 def load_train_data(folder, max_n_examples=-1):
 
-    train_data = datasets.CIFAR10('../data', train=True, download=True, transform=transforms.ToTensor())
+    train_data = datasets.CIFAR10('./data', train=True, download=True, transform=transforms.ToTensor())
 
     return train_data.data.numpy(), train_data.targets.numpy()
 
 
 def load_test_data(folder, max_n_examples=-1):
 
-    test_data = datasets.CIFAR10('../data', train=False, download=True, transform=transforms.ToTensor())
+    test_data = datasets.CIFAR10('./data', train=False, download=True, transform=transforms.ToTensor())
 
     return test_data.data.numpy(), test_data.targets.numpy()
 

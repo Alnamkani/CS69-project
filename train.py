@@ -1,10 +1,13 @@
 import argparse
 import logging
+from pyexpat import model
+from statistics import mode
 import numpy as np
 import torch
-
+from   torchvision import datasets, transforms
 import cifar10, Model, MiniBatcher, utils
-
+import matplotlib.pyplot as plt
+import torchvision
 
 
 def one_hot(y, n_classes):
@@ -15,53 +18,76 @@ def one_hot(y, n_classes):
     y_1hot[np.arange(m), np.squeeze(y)] = 1
     return y_1hot
 
+def imshow(img):
+    img = img / 2 + 0.5     # unnormalize
+    npimg = img.numpy()
+    plt.imshow(np.transpose(npimg, (1, 2, 0)))
+    plt.show()
+
+
 
 def main(*ARGS):    
     #load data
     folder = "./data"
-    X_train, y_train = cifar10.load_train_data(folder, max_n_examples=-1)
-    X_test, y_test = cifar10.load_test_data(folder)
 
-    # one hot encode data
-    y_train_1hot = one_hot(y_train, cifar10.N_CLASSES)
-    y_test_1hot = one_hot(y_test, cifar10.N_CLASSES)
+    batch_size = 4
 
-    # to torch tensor
-    X_train, y_train, y_train_1hot = torch.from_numpy(X_train), torch.from_numpy(y_train), torch.from_numpy(y_train_1hot)
-    X_train = X_train.type(torch.FloatTensor)
-    X_test, y_test, y_test_1hot = torch.from_numpy(X_test), torch.from_numpy(y_test), torch.from_numpy(y_test_1hot)
-    X_test = X_test.type(torch.FloatTensor)
+    transform = transforms.Compose(
+    [transforms.ToTensor(),
+     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+
+    trainset = datasets.CIFAR10(root=folder, train=True,
+                                            download=True, transform=transform)
+    trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size,
+                                            shuffle=True, num_workers=2)
+
+    testset = datasets.CIFAR10(root=folder, train=False,
+                                        download=True, transform=transform)
+    testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size,
+                                            shuffle=False, num_workers=2)
+
+    classes = ('plane', 'car', 'bird', 'cat',
+            'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
+ 
+    num_e = 0
 
     model = Model.Net()
 
-    losses = []
-    train_accs = []
-    test_accs = []
-    batch_size = 24
-    # wihtout minibatch size, this only shuffles the indices
-    batcher = MiniBatcher(batch_size, X_train.shape[0])
+    for epochs in range(num_e):
 
-    for i_epoch in range(20):
+        for i, data in enumerate(trainloader, 0):
 
-        for train_idxs in batcher.get_one_batch():
+            input, label = data
 
-            # fit to the training data
-            loss = model.train_one_epoch(X_train[train_idxs], y_train[train_idxs], y_train_1hot[train_idxs], 0.01)
+            model.train_one_epoch(input, label, None, None)
 
-            # monitor training and testing accuracy
-            y_train_pred = model.predict(X_train)
-            y_test_pred = model.predict(X_test)
-            train_acc = utils.accuracy(y_train, y_train_pred)
-            test_acc = utils.accuracy(y_test, y_test_pred)
-            logging.info("Accuracy(train) = {}".format(train_acc))
-            logging.info("Accuracy(test) = {}".format(test_acc))
+    print("done training")
 
-        # collect results for plotting for each epoch
-        loss = model.loss(X_train, y_train, y_train_1hot)
-        losses.append(loss)
-        train_accs.append(train_acc)
-        test_accs.append(test_acc)
+    # for i, data in enumerate(trainloader, 0):
+    #     input, label = data
+    #     lo = model.loss(input, label, None)
+    #     lo.backward()
+    #     for x in model.model.parameters():
+    #         print(x.grad.data.size())
+    #     print(lo)
+    #     break
+    
+    # return 
 
+    correct = 0
+    total = 0
+    # since we're not training, we don't need to calculate the gradients for our outputs
+    with torch.no_grad():
+        for data in testloader:
+            images, labels = data
+            # calculate outputs by running images through the network
+            # outputs = model(images)
+            # the class with the highest energy is what we choose as prediction
+            predicted = model.predict(images)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+
+    print(f'Accuracy of the network on the 10000 test images: {100 * correct // total} %')
 
 
 if __name__ == '__main__':

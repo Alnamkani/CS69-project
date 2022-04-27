@@ -6,12 +6,22 @@ from collections import OrderedDict
 class Net:
     def __init__(self, gpu_id=-1):
         net_dict = OrderedDict([("c_1", torch.nn.Conv2d(3, 6, 5))])
-        net_dict["p_1"] = torch.nn.MaxPool2d(2, 2)
-        net_dict['c_2'] = torch.nn.Conv2d(6, 16, 5)
-        net_dict['l_1'] = torch.nn.Linear(16*5*5, 120)
         net_dict['r_1'] = torch.nn.ReLU()
-        net_dict['l_2'] = torch.nn.Linear(120, 84)
+        net_dict["p_1"] = torch.nn.MaxPool2d(2, 2)
+
+
+        net_dict['c_2'] = torch.nn.Conv2d(6, 16, 5)
         net_dict['r_2'] = torch.nn.ReLU()
+        net_dict["p_2"] = torch.nn.MaxPool2d(2, 2)
+
+        net_dict['f'] = torch.nn.Flatten()
+
+        net_dict['l_1'] = torch.nn.Linear(16*5*5, 120)
+        net_dict['r_3'] = torch.nn.ReLU()
+
+        net_dict['l_2'] = torch.nn.Linear(120, 84)
+        net_dict['r_4'] = torch.nn.ReLU()
+
         net_dict['l_3'] = torch.nn.Linear(84, 10)
 
         if gpu_id == -1:
@@ -62,4 +72,18 @@ class Net:
         """
         y_pred = self.model(X)
         loss = self.loss_fn(y_pred, y.squeeze())
-        return loss.item()
+        return loss
+
+    def predict(self, X):
+        """Predict
+
+            Make predictions for X using the current model
+
+        Args:
+            X: (n_examples, n_features)
+
+        Returns:
+            (n_examples, )
+        """
+        y_pred = self.model(X)
+        return torch.max(y_pred, 1)[1]
