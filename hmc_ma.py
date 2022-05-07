@@ -10,22 +10,30 @@ class HMC():
         self.model = model
         self.shapes = [param.shape for param in self.model.model.parameters()]
         self.optimizer = torch.optim.SGD(self.model.model.parameters(), lr=0.0)
-        # self.optimizer = torch.optim.Adam(self.model.parameters())
 
-    def sample(self, n, initials, rng, deltas, num_leap, input, output):
+    def sample(self, n, int_model, rng, deltas, num_leap, trainloader):
         samples = []
         pot = []
 
-        for (param, initial) in zip(self.model.model.parameters(), initials):
-            param.data.copy_(initial)
-        with torch.no_grad():
-            nlf = self.model.loss(input, output, None).item()
+        # for (param, initial) in zip(self.model.model.parameters(), int_model.model.parameters()):
+        #     param.data.copy_(initial)
 
-        samples.append([param.data for param in self.model.model.parameters()])
+        self.model.model.load_state_dict(int_model.model.state_dict())
+
+        with torch.no_grad():
+                for i, data in enumerate(trainloader, 0):
+                    input, label = data
+                    nlf = self.model.loss(input, label, None).item()
+
+        samples.append(self.model)
         pot.append(nlf)
 
         # return [samples[0], samples[0]]
-        tmp = samples[0]
+        # tmp = Model.Net()
+        # tmp.model.load_state_dict(int_model.model.state_dict())
+
+        proposed_model = Model.Net()
+        proposed_model.model.load_state_dict(int_model.model.state_dict())
 
         accept_counter = 0
         while accept_counter < n:
@@ -35,19 +43,30 @@ class HMC():
 
             for j in range(num_leap):
                 self.optimizer.zero_grad()
-                self.model.loss(input, output, None).backward()
+
+                for i, data in enumerate(trainloader, 0):
+                    input, label = data
+
+                    self.model.loss(input, label, None).backward()
                 for pram, delta, vel in zip(self.model.model.parameters(), deltas, v):
                     vel -= torch.mul(delta / 2, pram.grad.data)
                 for pram, delta, vel in zip(self.model.model.parameters(), deltas, v):
                     pram.data += torch.mul(delta, vel)
                 self.optimizer.zero_grad()
-                self.model.loss(input, output, None).backward()
+                for i, data in enumerate(trainloader, 0):
+                    input, label = data
+
+                    self.model.loss(input, label, None).backward()
                 for pram, delta, vel in zip(self.model.model.parameters(), deltas, v):
                     vel -= torch.mul(delta / 2, pram.grad.data)
 
 
             with torch.no_grad():
-                nlf1 = self.model.loss(input, output, None).item()
+                for i, data in enumerate(trainloader, 0):
+                    input, label = data
+                    nlf1 = self.model.loss(input, label, None).item()
+
+                # nlf1 = self.model.loss(input, output, None).item()
             k1 = sum(0.5 * torch.sum(vel ** 2).item() for vel in v)
 
             a = min(1, math.exp(nlf0 + k0 - nlf1 - k1))
@@ -56,14 +75,19 @@ class HMC():
                 acc = True
 
             if acc:
-                samples.append([param.data for param in self.model.model.parameters()])
+
+                tmp = Model.Net()
+                tmp.model.load_state_dict(self.model.model.state_dict())
+                samples.append(tmp)
+                # samples.append([param.data for param in self.model.model.parameters()])
                 pot.append(nlf1)
             else:
-                for (param, initial) in zip(self.model.model.parameters(), samples[-1]):
-                    param.data.copy_(initial)
+                # for (param, initial) in zip(self.model.model.parameters(), samples[-1]):
+                #     param.data.copy_(initial)
+                self.model.load_state_dict(int_model.model.state_dict())
                 pot.append(nlf0)
             accept_counter += int(acc)
-        return [tmp] + samples
+        return [proposed_model] + samples # + [tmp] 
 
 if __name__ == '__main__':
     folder = "./data"
@@ -110,33 +134,31 @@ if __name__ == '__main__':
 
 
     # The first arg of the function sample is the number of samples
-    samples = h.sample(3, [param.data for param in model.model.parameters()], thrng, [0.001, 0.01, 0.1], 50, input, label)
+    samples = h.sample(1, model, thrng, [0.001, 0.01, 0.1], 50, trainloader)
 
     print(len(samples))
 
-    print(torch.eq(samples[0], samples[1]))
-
 
     # # You can immediately evaluate the sampled parameters using
-    # for x in samples:
-    #     print("-----------")
-    #     print(x)
+    for x in samples:
         # for (param, sample) in zip(h.model.model.parameters(), x):
         #     param.data.copy_(sample)
 
-        # correct = 0
-        # total = 0
-        #     # since we're not training, we don't need to calculate the gradients for our outputs
-        # with torch.no_grad():
-        #     for data in testloader:
-        #         images, labels = data
-        #             # calculate outputs by running images through the network
-        #             # outputs = model(images)
-        #             # the class with the highest energy is what we choose as prediction
-        #         predicted = model.predict(images)
-        #         total += labels.size(0)
-        #         correct += (predicted == labels).sum().item()
+        model.model.load_state_dict(x.model.state_dict())
 
-        # print(f'Accuracy of the network on the 10000 test images: {100 * correct // total} %')
-        # # break
+        correct = 0
+        total = 0
+            # since we're not training, we don't need to calculate the gradients for our outputs
+        with torch.no_grad():
+            for data in testloader:
+                images, labels = data
+                    # calculate outputs by running images through the network
+                    # outputs = model(images)
+                    # the class with the highest energy is what we choose as prediction
+                predicted = model.predict(images)
+                total += labels.size(0)
+                correct += (predicted == labels).sum().item()
+
+        print(f'Accuracy of the network on the 10000 test images: {100 * correct // total} %')
+        # break
     # Then evaluate model that has parameters sample[i]

@@ -1,7 +1,7 @@
 import argparse
 import logging
-from pyexpat import model
-from statistics import mode
+from   pyexpat import model
+from   statistics import mode
 import numpy as np
 import torch
 from   torchvision import datasets, transforms
@@ -30,7 +30,7 @@ def main(*ARGS):
     #load data
     folder = "./data"
 
-    batch_size = 4
+    batch_size = 64
 
     transform = transforms.Compose(
     [transforms.ToTensor(),
@@ -49,7 +49,7 @@ def main(*ARGS):
     classes = ('plane', 'car', 'bird', 'cat',
             'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
  
-    num_e = 2
+    num_e = 10
 
     model = Model.Net()
 
@@ -63,7 +63,7 @@ def main(*ARGS):
 
     print("done training")
 
-    path = "MA_weights.ptnnp"
+    path = "MA_weights_64.ptnnp"
 
     torch.save(model.model.state_dict(), path)
 
