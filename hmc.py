@@ -10,7 +10,6 @@ class HMC():
         self.model = model
         self.shapes = [param.shape for param in self.model.model.parameters()]
         self.optimizer = torch.optim.SGD(self.model.model.parameters(), lr=0.0)
-        # self.optimizer = torch.optim.Adam(self.model.parameters())
 
     def sample(self, n, initials, rng, deltas, num_leap, input, output):
         samples = []
@@ -63,6 +62,7 @@ class HMC():
                     param.data.copy_(initial)
                 pot.append(nlf0)
             accept_counter += int(acc)
+        # print(accept_counter, "COUNTER")
         return [tmp] + samples
 
 if __name__ == '__main__':
@@ -112,9 +112,9 @@ if __name__ == '__main__':
     # The first arg of the function sample is the number of samples
     samples = h.sample(3, [param.data for param in model.model.parameters()], thrng, [0.001, 0.01, 0.1], 50, input, label)
 
-    print(len(samples))
+    # print((samples[0]))
 
-    print(torch.eq(samples[0], samples[1]))
+    # print(torch.eq(samples[0][0], samples[1][0]))
 
 
     # # You can immediately evaluate the sampled parameters using

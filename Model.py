@@ -5,24 +5,59 @@ from collections import OrderedDict
 
 class Net:
     def __init__(self, gpu_id=-1):
-        net_dict = OrderedDict([("c_1", torch.nn.Conv2d(3, 6, 5))])
+        # net_dict = OrderedDict([("c_1", torch.nn.Conv2d(3, 6, 5))])
+        # net_dict['r_1'] = torch.nn.ReLU()
+        # net_dict["p_1"] = torch.nn.MaxPool2d(2, 2)
+
+
+        # net_dict['c_2'] = torch.nn.Conv2d(6, 16, 5)
+        # net_dict['r_2'] = torch.nn.ReLU()
+        # net_dict["p_2"] = torch.nn.MaxPool2d(2, 2)
+
+        # net_dict['f'] = torch.nn.Flatten()
+
+        # net_dict['l_1'] = torch.nn.Linear(16*5*5, 120)
+        # net_dict['r_3'] = torch.nn.ReLU()
+
+        # net_dict['l_2'] = torch.nn.Linear(120, 84)
+        # net_dict['r_4'] = torch.nn.ReLU()
+
+        # net_dict['l_3'] = torch.nn.Linear(84, 10)
+
+        # net_dict['f'] = torch.nn.Flatten()
+
+        # net_dict['l_1'] = torch.nn.Linear(16*5*5, 120)
+        # net_dict['r_3'] = torch.nn.ReLU()
+
+        # net_dict['l_2'] = torch.nn.Linear(120, 84)
+        # net_dict['r_4'] = torch.nn.ReLU()
+
+        # net_dict['l_3'] = torch.nn.Linear(84, 10)
+
+        ##############
+
+        net_dict = OrderedDict([("c_1", torch.nn.Conv2d(3, 32, 3))])
         net_dict['r_1'] = torch.nn.ReLU()
         net_dict["p_1"] = torch.nn.MaxPool2d(2, 2)
 
 
-        net_dict['c_2'] = torch.nn.Conv2d(6, 16, 5)
+        net_dict['c_2'] = torch.nn.Conv2d(32, 64, 3)
         net_dict['r_2'] = torch.nn.ReLU()
         net_dict["p_2"] = torch.nn.MaxPool2d(2, 2)
 
+        net_dict['c_3'] = torch.nn.Conv2d(64, 64, 3)
+        net_dict['r_3'] = torch.nn.ReLU()
+
         net_dict['f'] = torch.nn.Flatten()
 
-        net_dict['l_1'] = torch.nn.Linear(16*5*5, 120)
+        net_dict['l_1'] = torch.nn.Linear(4*4*64, 120)
         net_dict['r_3'] = torch.nn.ReLU()
 
         net_dict['l_2'] = torch.nn.Linear(120, 84)
         net_dict['r_4'] = torch.nn.ReLU()
 
         net_dict['l_3'] = torch.nn.Linear(84, 10)
+
 
         if gpu_id == -1:
             self.model = torch.nn.Sequential(net_dict)

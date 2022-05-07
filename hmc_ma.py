@@ -20,10 +20,12 @@ class HMC():
 
         self.model.model.load_state_dict(int_model.model.state_dict())
 
+        nlf = 0
+        self.optimizer.zero_grad()
         with torch.no_grad():
                 for i, data in enumerate(trainloader, 0):
                     input, label = data
-                    nlf = self.model.loss(input, label, None).item()
+                    nlf += self.model.loss(input, label, None).item()
 
         samples.append(self.model)
         pot.append(nlf)
@@ -42,29 +44,33 @@ class HMC():
             k0 = sum(0.5 * torch.sum(vel ** 2).item() for vel in v)
 
             for j in range(num_leap):
-                self.optimizer.zero_grad()
 
+                self.optimizer.zero_grad()
                 for i, data in enumerate(trainloader, 0):
                     input, label = data
-
                     self.model.loss(input, label, None).backward()
+
                 for pram, delta, vel in zip(self.model.model.parameters(), deltas, v):
-                    vel -= torch.mul(delta / 2, pram.grad.data)
+                    vel.data -= torch.mul(delta / 2, pram.grad.data)
+
                 for pram, delta, vel in zip(self.model.model.parameters(), deltas, v):
                     pram.data += torch.mul(delta, vel)
+
                 self.optimizer.zero_grad()
                 for i, data in enumerate(trainloader, 0):
                     input, label = data
-
                     self.model.loss(input, label, None).backward()
+
                 for pram, delta, vel in zip(self.model.model.parameters(), deltas, v):
-                    vel -= torch.mul(delta / 2, pram.grad.data)
+                    vel.data -= torch.mul(delta / 2, pram.grad.data)
 
+            nlf1 = 0
 
+            self.optimizer.zero_grad()
             with torch.no_grad():
                 for i, data in enumerate(trainloader, 0):
                     input, label = data
-                    nlf1 = self.model.loss(input, label, None).item()
+                    nlf1 += self.model.loss(input, label, None).item()
 
                 # nlf1 = self.model.loss(input, output, None).item()
             k1 = sum(0.5 * torch.sum(vel ** 2).item() for vel in v)
@@ -84,7 +90,8 @@ class HMC():
             else:
                 # for (param, initial) in zip(self.model.model.parameters(), samples[-1]):
                 #     param.data.copy_(initial)
-                self.model.load_state_dict(int_model.model.state_dict())
+                print("GG")
+                self.model.model.load_state_dict(int_model.model.state_dict())
                 pot.append(nlf0)
             accept_counter += int(acc)
         return [proposed_model] + samples # + [tmp] 
@@ -134,7 +141,7 @@ if __name__ == '__main__':
 
 
     # The first arg of the function sample is the number of samples
-    samples = h.sample(1, model, thrng, [0.001, 0.01, 0.1], 50, trainloader)
+    samples = h.sample(1, model, thrng, [0.001, 0.01, 0.1], 2, trainloader)
 
     print(len(samples))
 
