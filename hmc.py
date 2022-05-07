@@ -23,8 +23,8 @@ class HMC():
         samples.append([param.data for param in self.model.model.parameters()])
         pot.append(nlf)
 
-        # return [samples[0], samples[0]]
-        tmp = samples[0]
+        # # return [samples[0], samples[0]]
+        # tmp = samples[0]
 
         accept_counter = 0
         while accept_counter < n:
@@ -63,7 +63,7 @@ class HMC():
                 pot.append(nlf0)
             accept_counter += int(acc)
         # print(accept_counter, "COUNTER")
-        return [tmp] + samples
+        return samples
 
 if __name__ == '__main__':
     folder = "./data"
@@ -81,7 +81,7 @@ if __name__ == '__main__':
         input, label = data
 
     model = Model.Net()
-    model.model.load_state_dict(torch.load("MA_weights.ptnnp"))
+    model.model.load_state_dict(torch.load("MA_weights_64.ptnnp"))
 
 
     testset = datasets.CIFAR10(root=folder, train=False,
