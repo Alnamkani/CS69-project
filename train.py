@@ -67,26 +67,13 @@ def main(*ARGS):
 
     torch.save(model.model.state_dict(), path)
 
-    # for i, data in enumerate(trainloader, 0):
-    #     input, label = data
-    #     lo = model.loss(input, label, None)
-    #     lo.backward()
-    #     for x in model.model.parameters():
-    #         print(x.grad.data.size())
-    #     print(lo)
-    #     break
-    
-    # return 
-
     correct = 0
     total = 0
     # since we're not training, we don't need to calculate the gradients for our outputs
     with torch.no_grad():
         for data in testloader:
             images, labels = data
-            # calculate outputs by running images through the network
-            # outputs = model(images)
-            # the class with the highest energy is what we choose as prediction
+
             predicted = model.predict(images)
             total += labels.size(0)
             correct += (predicted == labels).sum().item()

@@ -1,7 +1,8 @@
+from operator import le
 import torch
 import math
 from torchvision import datasets, transforms
-
+import numpy as np
 import Model
 
 
@@ -20,14 +21,13 @@ class HMC():
         with torch.no_grad():
             nlf = self.model.loss(input, output, None).item()
 
-        samples.append([param.data for param in self.model.model.parameters()])
+        samples.append([torch.clone(param.data.cpu()) for param in self.model.model.parameters()])
         pot.append(nlf)
 
-        # # return [samples[0], samples[0]]
-        # tmp = samples[0]
-
         accept_counter = 0
+        ssss = 0
         while accept_counter < n:
+            ssss += 1
             v = [torch.randn(*shape, generator=rng) for (shape, param) in zip(self.shapes, self.model.model.parameters())]
             nlf0 = pot[-1]
             k0 = sum(0.5 * torch.sum(vel ** 2).item() for vel in v)
@@ -44,7 +44,6 @@ class HMC():
                 for pram, delta, vel in zip(self.model.model.parameters(), deltas, v):
                     vel -= torch.mul(delta / 2, pram.grad.data)
 
-
             with torch.no_grad():
                 nlf1 = self.model.loss(input, output, None).item()
             k1 = sum(0.5 * torch.sum(vel ** 2).item() for vel in v)
@@ -55,9 +54,10 @@ class HMC():
                 acc = True
 
             if acc:
-                samples.append([param.data for param in self.model.model.parameters()])
+                samples.append([torch.clone(param.data.cpu()) for param in self.model.model.parameters()])
                 pot.append(nlf1)
             else:
+                print("GG")
                 for (param, initial) in zip(self.model.model.parameters(), samples[-1]):
                     param.data.copy_(initial)
                 pot.append(nlf0)
@@ -76,67 +76,34 @@ if __name__ == '__main__':
                                 download=True, transform=transform)
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size,
                                               shuffle=True, num_workers=2)
+    testset = datasets.CIFAR10(root=folder, train=False,
+                               download=True, transform=transform)
+    testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size,
+                                             shuffle=False, num_workers=2)
 
     for i, data in enumerate(trainloader, 0):
         input, label = data
-
+        break 
     model = Model.Net()
     model.model.load_state_dict(torch.load("MA_weights_64.ptnnp"))
 
-
-    testset = datasets.CIFAR10(root=folder, train=False,
-                                        download=True, transform=transform)
-    testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size,
-                                            shuffle=False, num_workers=2)
-
-    # correct = 0
-    # total = 0
-    # # since we're not training, we don't need to calculate the gradients for our outputs
-    # with torch.no_grad():
-    #     for data in testloader:
-    #         images, labels = data
-    #         # calculate outputs by running images through the network
-    #         # outputs = model(images)
-    #         # the class with the highest energy is what we choose as prediction
-    #         predicted = model.predict(images)
-    #         total += labels.size(0)
-    #         correct += (predicted == labels).sum().item()
-
-    # print(f'Accuracy of the network on the 10000 test images: {100 * correct // total} %')
     
     h = HMC(model)
     thrng = torch.Generator("cpu")
     thrng.manual_seed(23)
-
-
     # The first arg of the function sample is the number of samples
-    samples = h.sample(3, [param.data for param in model.model.parameters()], thrng, [0.001, 0.01, 0.1], 50, input, label)
+    samples = h.sample(3, [param.data for param in model.model.parameters()], thrng, [0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01], 2, input, label)
+    for s in samples:
+        correct = 0
+        total = 0
+        for (param, sample) in zip(model.model.parameters(), s):
+            param.data.copy_(sample)
+        # since we're not training, we don't need to calculate the gradients for our outputs
+        with torch.no_grad():
+            for data in testloader:
+                images, labels = data
+                predicted = model.predict(images)
+                total += labels.size(0)
+                correct += (predicted == labels).sum().item()
 
-    # print((samples[0]))
-
-    # print(torch.eq(samples[0][0], samples[1][0]))
-
-
-    # # You can immediately evaluate the sampled parameters using
-    # for x in samples:
-    #     print("-----------")
-    #     print(x)
-        # for (param, sample) in zip(h.model.model.parameters(), x):
-        #     param.data.copy_(sample)
-
-        # correct = 0
-        # total = 0
-        #     # since we're not training, we don't need to calculate the gradients for our outputs
-        # with torch.no_grad():
-        #     for data in testloader:
-        #         images, labels = data
-        #             # calculate outputs by running images through the network
-        #             # outputs = model(images)
-        #             # the class with the highest energy is what we choose as prediction
-        #         predicted = model.predict(images)
-        #         total += labels.size(0)
-        #         correct += (predicted == labels).sum().item()
-
-        # print(f'Accuracy of the network on the 10000 test images: {100 * correct // total} %')
-        # # break
-    # Then evaluate model that has parameters sample[i]
+        print(f'Accuracy of the network on the 10000 test images: {100 * correct // total} %')
